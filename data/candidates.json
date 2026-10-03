@@ -1,0 +1,157 @@
+{
+  "schema": 1,
+  "_about": "Programs and services a company can put behind one tier of the decision chain. decidecall runs none of them itself: each becomes an adapter (a command the company installs and names in decidecall-adapters.json). Every row says where it was read and on which day; 'status' is 'verified' when the repository or package page itself was opened, 'secondary' when only another site says it.",
+  "candidates": [
+    {
+      "id": "strands-decider",
+      "what": "A 1.9B decision model (Qwen3.5-2B torso with a pointer head): picks an option or rates on a scale in one forward pass, with a calibrated confidence. CLI `strands-decider ask` and a server with POST /v1/systemone.",
+      "tier": "local",
+      "adapter_kind": ["strands-cli", "systemone"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/strands-labs/strands-decider",
+      "package": "https://pypi.org/project/strands-decider/",
+      "claims": "answers at confidence 0.9 or more are right about 95% of the time on unseen short classification tasks; JevBench v1 public set accuracy 0.723 (167 of 231); median 115 ms on an RTX 3090 (the repository's README)",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "openjev",
+      "what": "An open, Jev-compatible decision server on DiffusionGemma: POST /v1/systemone {state, model, questions} -> {model, answers, usage}; question types noul, choice, score; confidence = 1 - H(p)/ln K.",
+      "tier": "local",
+      "adapter_kind": ["systemone"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/razorback16/openjev",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "jevk5",
+      "what": "An open-weight alternative to TypeSafe Jev: typed decisions with a probability for every option in one forward pass (Qwen3.5-4B with a LoRA distilled from Qwen3.6-27B); served through OpenJev.",
+      "tier": "local",
+      "adapter_kind": ["systemone"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/allebee/jevk5",
+      "weights": "https://huggingface.co/alibiserikbay/JevK5",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "typesafe-jev",
+      "what": "TypeSafe's hosted decision model Jev (released 15.09.2026, early access): POST https://api.typesafe.ai/v1/systemone, model jev-latest.",
+      "tier": "cheap",
+      "adapter_kind": ["systemone"],
+      "license": "proprietary service",
+      "price": {"usd_per_mtok_in": 0.042, "usd_per_mtok_out": 0.0},
+      "url": "https://www.datacamp.com/blog/system-one-models-jev",
+      "status": "secondary",
+      "note": "Price and endpoint as reported by DataCamp from TypeSafe's announcement; TypeSafe's own pricing page was not opened. Plan rule (JEV 92.txt): pay for it only after bench shows it beats cache + rules + a local model.",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "llm-typesafe",
+      "what": "A plugin for Simon Willison's `llm` command-line tool that reaches TypeSafe models; a ready command line for the systemone adapter.",
+      "tier": "cheap",
+      "adapter_kind": ["decision-json"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/simonw/llm-typesafe",
+      "package": "https://pypi.org/project/llm-typesafe/",
+      "status": "verified",
+      "note": "PyPI version 0.1a0 (alpha) on the day it was read; needs the company's own TypeSafe key.",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "setfit",
+      "what": "Few-shot sentence-transformer classifiers: train a small local classifier from a few dozen labelled examples (decidecall's journal of human answers is such a set).",
+      "tier": "local",
+      "adapter_kind": ["decision-json"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/huggingface/setfit",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "outlines",
+      "what": "Structured generation for local models: forces the answer into a JSON Schema, a regex or a fixed set of choices - the outputSchema of an adapter enforced at generation time.",
+      "tier": "local",
+      "adapter_kind": ["decision-json"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/dottxt-ai/outlines",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "xgrammar",
+      "what": "Grammar-constrained decoding used inside vLLM, SGLang and others; the same outputSchema guarantee on a served local model.",
+      "tier": "local",
+      "adapter_kind": ["decision-json"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/mlc-ai/xgrammar",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "baml",
+      "what": "A typed prompt language that turns a model's answer into a checked type; another way to write the decision-json adapter.",
+      "tier": "cheap",
+      "adapter_kind": ["decision-json"],
+      "license": "Apache-2.0",
+      "url": "https://github.com/BoundaryML/baml",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "opensmartroute",
+      "what": "An open decision control plane: per request picks the model, agent, tool, workflow or human under hard constraints (privacy, region, budget, latency) and explains the choice. Pure Python, no runtime dependencies.",
+      "tier": "router",
+      "adapter_kind": [],
+      "license": "Apache-2.0",
+      "url": "https://pypi.org/project/opensmartroute/",
+      "status": "verified",
+      "note": "PyPI version 1.10.0 on the day it was read. A router, not a decision model: it compares with decidecall's chain itself, not with one tier.",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "agent-model-router",
+      "what": "A local-first, zero-dependency Python model router for agents: utility routing over quality, cost, latency, failure risk, quota and deadline pressure.",
+      "tier": "router",
+      "adapter_kind": [],
+      "license": "MIT",
+      "url": "https://github.com/Odd-C/agent-model-router",
+      "status": "verified",
+      "note": "2 stars on the day it was read; small and young. A namesake under MIT for OpenRouter exists at github.com/up2itnow0822/agent-model-router.",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "jevbench",
+      "what": "JevBench, a public benchmark for Jev-class typed decision models; the yardstick strands-decider and JevK5 report against.",
+      "tier": "bench",
+      "adapter_kind": [],
+      "license": "MIT",
+      "url": "https://github.com/fstandhartinger/jevbench",
+      "status": "verified",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "claude-haiku-via-claude-p",
+      "what": "Claude Haiku through the Claude Code already signed in: `claude -p --model haiku --output-format json --json-schema <schema>` returns `structured_output` that matches the schema.",
+      "tier": "cheap",
+      "adapter_kind": ["decision-json"],
+      "license": "the company's own Claude plan",
+      "price": {"usd_per_mtok_in": 1.0, "usd_per_mtok_out": 5.0},
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+      "status": "verified",
+      "note": "Flag --json-schema and the field structured_output checked on Claude Code 2.1.288 on 2026-10-02. With --tools \"\" --strict-mcp-config and a one-line --system-prompt one call reported $0.0037 at list price instead of $0.049 with the default Claude Code system prompt. On a subscription the call uses the plan's limits; the list price is what the same call costs over the API.",
+      "checked": "2026-10-02"
+    },
+    {
+      "id": "ollama",
+      "what": "Runs an open model on this computer; `ollama run <model> --format json` answers in JSON for the decision-json adapter.",
+      "tier": "local",
+      "adapter_kind": ["decision-json"],
+      "license": "MIT",
+      "url": "https://github.com/ollama/ollama",
+      "status": "verified",
+      "checked": "2026-10-02"
+    }
+  ]
+}

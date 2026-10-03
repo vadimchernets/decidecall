@@ -1,0 +1,65 @@
+{"id": "t01", "input": "I was charged twice this month, please refund one payment.", "label": "billing", "color": "green"}
+{"id": "t02", "input": "Where can I download last month's invoice?", "label": "billing", "color": "green"}
+{"id": "t03", "input": "I forgot my password and the reset email never arrives.", "label": "account", "color": "green"}
+{"id": "t04", "input": "The app crashes every time I open the reports page.", "label": "technical", "color": "green"}
+{"id": "t05", "input": "Can you send me a quote for 25 seats?", "label": "sales", "color": "green"}
+{"id": "t06", "input": "How do I change the email address on my account?", "label": "account", "color": "green"}
+{"id": "t07", "input": "Your payment page shows an error 502 when I try to pay.", "label": "technical", "color": "green"}
+{"id": "t08", "input": "Is there a discount for non-profits?", "label": "sales", "color": "green"}
+{"id": "t09", "input": "I cancelled last week but you still took the money.", "label": "billing", "color": "green"}
+{"id": "t10", "input": "Two-factor codes stopped working after I changed phones.", "label": "account", "color": "green"}
+{"id": "t11", "input": "The export to CSV button does nothing in Firefox.", "label": "technical", "color": "green"}
+{"id": "t12", "input": "We'd like a demo for our team next Tuesday.", "label": "sales", "color": "green"}
+{"id": "t13", "input": "I was charged twice this month, please refund one payment.", "label": "billing", "color": "green"}
+{"id": "t14", "input": "Please add our VAT number to the invoices.", "label": "billing", "color": "green"}
+{"id": "t15", "input": "I can't log in since this morning, it says my account is locked.", "label": "account", "color": "green"}
+{"id": "t16", "input": "Sync between the phone and the desktop is stuck at 99%.", "label": "technical", "color": "green"}
+{"id": "t17", "input": "What is the price for the enterprise plan with SSO?", "label": "sales", "color": "green"}
+{"id": "t18", "input": "Refund request: the order arrived broken.", "label": "billing", "color": "green"}
+{"id": "t19", "input": "The app crashes every time I open the reports page.", "label": "technical", "color": "green"}
+{"id": "t20", "input": "Delete my account and all my data, please.", "label": "account", "color": "green"}
+{"id": "t21", "input": "Pages take a minute to load since yesterday's update.", "label": "technical", "color": "green"}
+{"id": "t22", "input": "Do you offer annual billing with a discount for 50 users?", "label": "sales", "color": "green"}
+{"id": "t23", "input": "My card was declined but the bank says everything is fine.", "label": "billing", "color": "green"}
+{"id": "t24", "input": "I want to transfer the account to my colleague who replaces me.", "label": "account", "color": "green"}
+{"id": "t25", "input": "Notifications don't arrive on Android 15.", "label": "technical", "color": "green"}
+{"id": "t26", "input": "Can I get a quote for 25 seats?", "label": "sales", "color": "green"}
+{"id": "t27", "input": "Why did the price go up on my renewal without notice?", "label": "billing", "color": "green"}
+{"id": "t28", "input": "How do I turn on single sign-on for my workspace?", "label": "account", "color": "green"}
+{"id": "t29", "input": "After the update I see a blank white screen.", "label": "technical", "color": "green"}
+{"id": "t30", "input": "We are a school of 300 students, what would it cost us?", "label": "sales", "color": "green"}
+{"id": "t31", "input": "I forgot my password and the reset email never arrives.", "label": "account", "color": "green"}
+{"id": "t32", "input": "The invoice shows the wrong company name.", "label": "billing", "color": "green"}
+{"id": "t33", "input": "The search finds nothing even for words that are on the page.", "label": "technical", "color": "green"}
+{"id": "t34", "input": "Is there a partner programme for resellers?", "label": "sales", "color": "green"}
+{"id": "t35", "input": "Please change the card you charge every month.", "label": "billing", "color": "green"}
+{"id": "t36", "input": "Someone else logged into my account from another country.", "label": "account", "color": "green"}
+{"id": "t37", "input": "Uploading a file over 10 MB fails with an error.", "label": "technical", "color": "green"}
+{"id": "t38", "input": "I'd like to book a call about a custom contract.", "label": "sales", "color": "green"}
+{"id": "t39", "input": "I was charged for a demo I never asked for.", "label": "billing", "color": "green"}
+{"id": "t40", "input": "The login page keeps loading forever on Safari.", "label": "technical", "color": "green"}
+{"id": "t41", "input": "Can I upgrade my plan in the middle of the month and pay the difference?", "label": "billing", "color": "green"}
+{"id": "t42", "input": "We need ten more seats before Monday, who do I talk to?", "label": "sales", "color": "green"}
+{"id": "t43", "input": "Your password rules don't accept my password manager's passwords.", "label": "account", "color": "green"}
+{"id": "t44", "input": "The calendar shows meetings one hour late since the clock change.", "label": "technical", "color": "green"}
+{"id": "t45", "input": "Do you have a price list in euros?", "label": "sales", "color": "green"}
+{"id": "t46", "input": "Where can I download last month's invoice?", "label": "billing", "color": "green"}
+{"id": "t47", "input": "Our admin left the company and nobody can manage the users now.", "label": "account", "color": "green"}
+{"id": "t48", "input": "Dark mode makes the buttons invisible.", "label": "technical", "color": "green"}
+{"id": "t49", "input": "The refund you promised two weeks ago is still not on my card.", "label": "billing", "color": "green"}
+{"id": "t50", "input": "Can we pay by bank transfer instead of card for 40 seats?", "label": "sales", "color": "green"}
+{"id": "t51", "input": "I cannot change my username, the field is greyed out.", "label": "account", "color": "green"}
+{"id": "t52", "input": "The app crashes every time I open the reports page.", "label": "technical", "color": "green"}
+{"id": "t53", "input": "What does the premium plan include compared to the basic one?", "label": "sales", "color": "green"}
+{"id": "t54", "input": "Please send a receipt for the payment of 3 October.", "label": "billing", "color": "green"}
+{"id": "t55", "input": "I get logged out every five minutes.", "label": "account", "color": "green"}
+{"id": "t56", "input": "Printing a report cuts off the last column.", "label": "technical", "color": "green"}
+{"id": "t57", "input": "Is there a trial for teams before we buy?", "label": "sales", "color": "green"}
+{"id": "t58", "input": "I was charged twice this month, please refund one payment.", "label": "billing", "color": "green"}
+{"id": "t59", "input": "The import from Excel mixes up the dates.", "label": "technical", "color": "green"}
+{"id": "t60", "input": "Merge my two accounts into one, please.", "label": "account", "color": "green"}
+{"id": "t61", "input": "sync between the phone and the desktop is stuck at 99%!", "label": "technical", "color": "green"}
+{"id": "t62", "input": "Can we pay by bank transfer instead of card for 40 seats?", "label": "sales", "color": "green"}
+{"id": "t63", "input": "I get logged out every five minutes!!", "label": "account", "color": "green"}
+{"id": "t64", "input": "Sync between my phone and the desktop is stuck at 99% again.", "label": "technical", "color": "green"}
+{"id": "t65", "input": "Our admin left the company and nobody can manage the users now.", "label": "account", "color": "green"}

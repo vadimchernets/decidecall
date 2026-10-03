@@ -1,0 +1,14 @@
+{
+  "name": "Português",
+  "human_needed": "Esta decisão é de uma pessoa (id {id}; melhor palpite: {guess}). A resposta dela vai para o cache.",
+  "label_saved": "Guardado: {answer}. A mesma mensagem passa a ser decidida pelo cache, de graça.",
+  "bench_file": "teste-de-decisoes.md",
+  "bench_title": "Teste de decisões",
+  "bench_examples": "Exemplos",
+  "bench_auto": "Decididos sem uma pessoa (acertos)",
+  "bench_person": "Enviados a uma pessoa",
+  "bench_cost": "Preço de uma decisão",
+  "bench_baseline": "Preço de uma decisão, tudo para um só modelo",
+  "bench_tiers": "O que cada elo decidiu",
+  "bench_negative": "O que não funcionou"
+}

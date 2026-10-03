@@ -1,0 +1,20 @@
+{
+  "title": "decidecall: a decision layer that pays a model only for the decisions that need one",
+  "description": "decidecall is a Claude Code plugin for companies. A repeated small decision walks a chain - exact and similar cache, keyword rules, a local decision model, a cheap cloud model, a strong model, a person - and stops at the first link whose calibrated confidence passes the act gate (0.95 by default); two links that agree settle a less sure answer. A person's answer goes into the cache, so the same question never reaches a model again; promote turns decisions the models kept agreeing on into cache entries and suggests keyword rules; bench measures accuracy, coverage per link, calibration (expected calibration error) and the price of one decision against sending everything to one model, and reports what did not work. Model links are adapters to programs the company installs (strands-decider, OpenJev or JevK5 through the systemone protocol, ollama, claude -p with a JSON schema), checked against the task's output schema. The shared company policy file keeps red data on the computer, admits only zero-data-retention cloud adapters when asked, filters vendors, picks the cheapest admitted adapter and stops paid links at the daily budget. It buys nothing. Python standard library only, no network module.",
+  "creators": [
+    {
+      "name": "Chernets, Vadym"
+    }
+  ],
+  "upload_type": "software",
+  "license": "apache-2.0",
+  "keywords": [
+    "claude-code-plugin",
+    "decision-model",
+    "llm-routing",
+    "calibration",
+    "cache",
+    "local-llm",
+    "for-companies"
+  ]
+}

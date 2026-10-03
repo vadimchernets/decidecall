@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "_about": "Copy to the company folder as decidecall-adapters.json (or ~/.decidecall/adapters.json) and keep only the programs that are installed. decidecall runs each command itself, with no shell, and talks to it through standard input and output; it never opens a connection of its own.",
+  "adapters": [
+    {
+      "id": "strands-local",
+      "tier": "local",
+      "kind": "strands-cli",
+      "command": [
+        "strands-decider",
+        "ask",
+        "StrandsAgents/strands-decider-2B-hobson-v19",
+        "--state",
+        "{state}",
+        "--choice",
+        "{question}={options_csv}"
+      ],
+      "provider": "local",
+      "location": "local",
+      "usd_per_mtok_in": 0,
+      "usd_per_mtok_out": 0
+    },
+    {
+      "id": "openjev-local",
+      "tier": "local",
+      "kind": "systemone",
+      "command": [
+        "curl",
+        "-sS",
+        "http://127.0.0.1:8000/v1/systemone",
+        "-H",
+        "content-type: application/json",
+        "--data-binary",
+        "@-"
+      ],
+      "provider": "local",
+      "location": "local",
+      "usd_per_mtok_in": 0,
+      "usd_per_mtok_out": 0
+    },
+    {
+      "id": "ollama-qwen",
+      "tier": "local",
+      "kind": "decision-json",
+      "command": [
+        "ollama",
+        "run",
+        "qwen3.6:35b-a3b",
+        "--format",
+        "json",
+        "{prompt}"
+      ],
+      "provider": "local",
+      "location": "local",
+      "usd_per_mtok_in": 0,
+      "usd_per_mtok_out": 0
+    },
+    {
+      "id": "haiku",
+      "tier": "cheap",
+      "kind": "decision-json",
+      "command": [
+        "claude",
+        "-p",
+        "--model",
+        "haiku",
+        "--output-format",
+        "json",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--system-prompt",
+        "You take one decision. Answer only with the JSON asked for.",
+        "--json-schema",
+        "{schema}",
+        "{prompt}"
+      ],
+      "provider": "anthropic",
+      "location": "cloud",
+      "zdr": false,
+      "usd_per_mtok_in": 1.0,
+      "usd_per_mtok_out": 5.0
+    },
+    {
+      "id": "jev",
+      "tier": "cheap",
+      "kind": "systemone",
+      "command": [
+        "sh",
+        "-c",
+        "curl -sS https://api.typesafe.ai/v1/systemone -H \"Authorization: Bearer $TYPESAFE_API_KEY\" -H 'content-type: application/json' --data-binary @-"
+      ],
+      "provider": "typesafe",
+      "location": "cloud",
+      "zdr": false,
+      "usd_per_mtok_in": 0.042,
+      "usd_per_mtok_out": 0
+    },
+    {
+      "id": "opus",
+      "tier": "strong",
+      "kind": "decision-json",
+      "command": [
+        "claude",
+        "-p",
+        "--model",
+        "opus",
+        "--output-format",
+        "json",
+        "--tools",
+        "",
+        "--strict-mcp-config",
+        "--system-prompt",
+        "You take one decision. Answer only with the JSON asked for.",
+        "--json-schema",
+        "{schema}",
+        "{prompt}"
+      ],
+      "provider": "anthropic",
+      "location": "cloud",
+      "zdr": false,
+      "usd_per_mtok_in": 4.0,
+      "usd_per_mtok_out": 20.0
+    }
+  ]
+}

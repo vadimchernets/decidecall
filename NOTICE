@@ -1,0 +1,20 @@
+decidecall
+Copyright 2026 Vadym Chernets
+
+This product includes software developed by Vadym Chernets, as part of Poly A1.
+
+The decision chain follows the notes on decision models collected for Poly A1 (the JEV notes, read
+2026-10-02): "exact cache -> similar cache -> deterministic code -> local model -> cheap cloud model ->
+if uncertain, a stronger model", and the confidence gate "confidence > .95 -> act; .70-.95 -> verify;
+< .70 -> escalate" (92.txt, lines 575-648); "pay for a hosted decision model only after it is shown to
+beat cache, rules and a local model" (92.txt, lines 340-360 and 471); structured results through MCP
+outputSchema (93.txt, lines 157-159) and retrieval without a vector database (93.txt, line 206).
+
+No third-party code is copied. The adapters speak the published interfaces of these projects, run as
+separate programs the company installs itself:
+- strands-decider (Apache-2.0): https://github.com/strands-labs/strands-decider - the `ask` command's
+  "choice -> option (confidence x)" line and the POST /v1/systemone request and answer shape.
+- OpenJev (Apache-2.0): https://github.com/razorback16/openjev - the Jev-compatible /v1/systemone shape.
+- JevK5 (Apache-2.0): https://github.com/allebee/jevk5
+- Claude Code `claude -p --output-format json --json-schema`: the `structured_output` field.
+Every candidate program in data/candidates.json names its page, licence and the day it was read.

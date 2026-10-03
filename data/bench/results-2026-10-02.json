@@ -1,0 +1,131 @@
+{
+ "_about": "Real bench runs on this computer, 2026-10-02. No local model (no ollama, strands-decider or OpenJev installed here), so the local link was not measured.",
+ "runs": [
+  {
+   "task": "support-triage",
+   "examples": 65,
+   "tiers": [
+    "cache",
+    "rules"
+   ],
+   "tiers_without_adapter": [],
+   "decided_automatically": 36,
+   "right_automatically": 36,
+   "accuracy_automatic": 1.0,
+   "to_a_person": 29,
+   "share_to_a_person": 0.4462,
+   "per_tier": {
+    "cache": {
+     "decided": 4,
+     "correct": 4
+    },
+    "rules": {
+     "decided": 32,
+     "correct": 32
+    },
+    "human": {
+     "decided": 29,
+     "correct": 29
+    }
+   },
+   "calibration": [
+    {
+     "from": 0.95,
+     "to": 1.0,
+     "count": 36,
+     "mean_confidence": 0.9672,
+     "accuracy": 1.0
+    }
+   ],
+   "expected_calibration_error": 0.0328,
+   "cost_usd_total": 0.0,
+   "cost_usd_per_decision": 0.0,
+   "wrong": [],
+   "baseline": {
+    "name": "every message to Claude Haiku 4.5 over the API",
+    "cost_usd_total": 0.018299,
+    "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "checked": "2026-10-02",
+    "note": "the same examples, every one sent to this model at list price"
+   },
+   "negative_results": [],
+   "dataset": "support-triage.jsonl",
+   "run": "cache + rules, no model",
+   "date": "2026-10-02"
+  },
+  {
+   "task": "support-triage",
+   "examples": 65,
+   "tiers": [
+    "cache",
+    "rules",
+    "cheap"
+   ],
+   "tiers_without_adapter": [],
+   "decided_automatically": 59,
+   "right_automatically": 57,
+   "accuracy_automatic": 0.9661,
+   "to_a_person": 6,
+   "share_to_a_person": 0.0923,
+   "per_tier": {
+    "cache": {
+     "decided": 1,
+     "correct": 1
+    },
+    "rules": {
+     "decided": 32,
+     "correct": 32
+    },
+    "cheap": {
+     "decided": 26,
+     "correct": 24
+    },
+    "human": {
+     "decided": 6,
+     "correct": 6
+    }
+   },
+   "calibration": [
+    {
+     "from": 0.95,
+     "to": 1.0,
+     "count": 59,
+     "mean_confidence": 0.9702,
+     "accuracy": 0.9661
+    }
+   ],
+   "expected_calibration_error": 0.0041,
+   "cost_usd_total": 0.167308,
+   "cost_usd_per_decision": 0.00257397,
+   "wrong": [
+    {
+     "id": "t55",
+     "expected": "account",
+     "got": "technical",
+     "tier": "cheap",
+     "confidence": 0.98
+    },
+    {
+     "id": "t63",
+     "expected": "account",
+     "got": "technical",
+     "tier": "cheap",
+     "confidence": 0.98
+    }
+   ],
+   "baseline": {
+    "name": "every message to Claude Haiku 4.5 over the API",
+    "cost_usd_total": 0.018299,
+    "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "checked": "2026-10-02",
+    "note": "the same examples, every one sent to this model at list price"
+   },
+   "negative_results": [
+    "the chain cost $0.1673, more than the $0.0183 of sending every example straight to every message to Claude Haiku 4.5 over the API - an adapter carries more than the question (a program's own instructions, or a dearer model)"
+   ],
+   "dataset": "support-triage.jsonl",
+   "run": "cache + rules + Claude Haiku 4.5 through claude -p (Claude Code 2.1.288, signed in with a subscription; costs are the list prices claude -p reports)",
+   "date": "2026-10-02"
+  }
+ ]
+}

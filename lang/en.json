@@ -1,0 +1,27 @@
+{
+  "name": "English",
+  "_purpose": {
+    "human_needed": "said when no link of the chain was sure: a person decides; {id} is the decision id to answer with `label`, {guess} the best guess so far",
+    "label_saved": "said after a person's answer is saved; {answer} is the option",
+    "bench_file": "file name of the bench report written into the company's folder",
+    "bench_title": "first heading of the bench report",
+    "bench_examples": "row: how many labelled examples",
+    "bench_auto": "row: decided without a person, and how often right",
+    "bench_person": "row: sent to a person",
+    "bench_cost": "row: price of one decision",
+    "bench_baseline": "row: price of one decision if every one went to the reference model",
+    "bench_tiers": "heading: what each link of the chain decided",
+    "bench_negative": "heading: what did not work, said plainly"
+  },
+  "human_needed": "A person decides this one (id {id}; best guess so far: {guess}). Their answer goes into the cache.",
+  "label_saved": "Saved: {answer}. The same message is now decided from the cache, for free.",
+  "bench_file": "decisions-bench.md",
+  "bench_title": "Decision bench",
+  "bench_examples": "Examples",
+  "bench_auto": "Decided without a person (right)",
+  "bench_person": "Sent to a person",
+  "bench_cost": "Price of one decision",
+  "bench_baseline": "Price of one decision, everything to one model",
+  "bench_tiers": "What each link decided",
+  "bench_negative": "What did not work"
+}

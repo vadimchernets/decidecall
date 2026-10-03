@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "id": "support-triage",
+  "question": "Which team should handle this customer message?",
+  "options": {
+    "billing": "payments, charges, refunds, invoices, receipts, the card on file",
+    "technical": "the product misbehaves: errors, crashes, slowness, something does not work",
+    "account": "signing in, passwords, two-factor, users, ownership, deleting or merging accounts",
+    "sales": "prices before buying, quotes, demos, discounts, trials, more seats, contracts"
+  },
+  "thresholds": {"act": 0.95, "verify": 0.70},
+  "chain": ["cache", "rules", "local", "cheap", "strong", "human"],
+  "rules": [
+    {"label": "billing", "any": ["invoice", "invoices", "refund", "receipt", "charged", "vat number"], "confidence": 0.97},
+    {"label": "account", "any": ["password", "two-factor", "2fa", "log in", "logged into", "username"], "confidence": 0.96},
+    {"label": "sales", "any": ["quote", "demo", "discount", "price list", "trial", "partner programme"], "confidence": 0.96},
+    {"label": "technical", "any": ["crash", "crashes", "error", "blank white screen", "not loading", "does nothing"], "confidence": 0.96}
+  ],
+  "baseline": {
+    "name": "every message to Claude Haiku 4.5 over the API",
+    "usd_per_mtok_in": 1.0,
+    "usd_per_mtok_out": 5.0,
+    "output_tokens": 20,
+    "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+    "checked": "2026-10-02"
+  }
+}

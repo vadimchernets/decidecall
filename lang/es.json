@@ -1,0 +1,14 @@
+{
+  "name": "Español",
+  "human_needed": "Esta la decide una persona (id {id}; mejor suposición: {guess}). Su respuesta pasa a la caché.",
+  "label_saved": "Guardado: {answer}. El mismo mensaje se decide ahora desde la caché, gratis.",
+  "bench_file": "prueba-de-decisiones.md",
+  "bench_title": "Prueba de decisiones",
+  "bench_examples": "Ejemplos",
+  "bench_auto": "Decididos sin una persona (aciertos)",
+  "bench_person": "Enviados a una persona",
+  "bench_cost": "Precio de una decisión",
+  "bench_baseline": "Precio de una decisión, todo a un solo modelo",
+  "bench_tiers": "Qué decidió cada eslabón",
+  "bench_negative": "Qué no funcionó"
+}

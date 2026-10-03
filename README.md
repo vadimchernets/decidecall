@@ -1,5 +1,7 @@
 # decidecall
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23116720.svg)](https://doi.org/10.5281/zenodo.23116720)
+
 Pay a model only for the decisions that need one. A [Claude Code](https://claude.com/claude-code) plugin of
 Poly A1 for a company's repeated small decisions — which team gets this message, approve or send back, urgent
 or not. Repository: [github.com/vadimchernets/decidecall](https://github.com/vadimchernets/decidecall).

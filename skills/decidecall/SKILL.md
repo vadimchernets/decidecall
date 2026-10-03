@@ -51,7 +51,11 @@ Copy `${CLAUDE_PLUGIN_ROOT}/data/examples/decidecall-adapters.example.json` to `
 their folder and keep only what is installed on this computer (check with `command -v strands-decider ollama
 claude`). Each adapter says its link (`local`, `cheap`, `strong`), its kind, its command, `location` (`local` or
 `cloud`), `provider`, `zdr` and its price per million tokens. Then show which adapter each link would use and why
-the others are refused by the company policy:
+the others are refused by the company policy. For the meaning cache keep the `embed` adapter when ollama runs
+here (`ollama pull nomic-embed-text` once): the same question in other words is then found without a model. Prefer
+the `ollama` and `openai-chat` kinds for local models: the runner decodes only the decision's shape. A hosted key
+goes into the keychain (`security add-generic-password -s typesafe-api-key -a "$USER" -w` on a Mac), never into
+the file:
 
 ```
 sh "${CLAUDE_PLUGIN_ROOT}/hooks/python.sh" decidecall say skills/decidecall/scripts/decidecall.py route --task support-triage

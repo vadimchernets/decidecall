@@ -4,7 +4,9 @@
 Reads the systemone request on standard input and answers the question `decision` with the option in
 $STUB_CHOICE at confidence $STUB_CONF. With $STUB_KIND=json it answers like `claude -p --output-format
 json` instead (structured_output). Every call is appended to $STUB_LOG, so a test can prove it was never
-called. $STUB_BROKEN=1 answers an option that does not exist.
+called. $STUB_BROKEN=1 answers an option that does not exist. $STUB_PROBS (JSON) adds the systemone
+`probabilities`; $STUB_REASON adds a reason to the JSON answer; $STUB_KIND=ollama or chat answers like
+ollama /api/generate or a /v1/chat/completions server, and $STUB_REQUEST names a file for the request.
 """
 import json
 import os
@@ -19,10 +21,24 @@ choice = os.environ.get("STUB_CHOICE", "billing")
 if os.environ.get("STUB_BROKEN") == "1":
     choice = "no-such-option"
 conf = float(os.environ.get("STUB_CONF", "0.97"))
-if os.environ.get("STUB_KIND") == "json":
+if os.environ.get("STUB_REQUEST"):
+    with open(os.environ["STUB_REQUEST"], "w") as fh:
+        fh.write(request)
+kind = os.environ.get("STUB_KIND")
+answer = {"decision": choice, "confidence": conf}
+if os.environ.get("STUB_REASON"):
+    answer["reason"] = os.environ["STUB_REASON"]
+if kind == "ollama":
+    print(json.dumps({"model": "stub", "response": json.dumps(answer), "done": True}))
+elif kind == "chat":
+    print(json.dumps({"choices": [{"index": 0, "message": {"role": "assistant", "content": json.dumps(answer)}}]}))
+elif kind == "json":
     print(json.dumps({"type": "result", "total_cost_usd": 0.0037,
                       "structured_output": {"decision": choice, "confidence": conf}}))
 else:
     json.loads(request)        # a systemone adapter must receive JSON
-    print(json.dumps({"model": "stub-jev", "answers": {"decision": {"choice": choice, "confidence": conf}},
+    ans = {"choice": choice, "confidence": conf}
+    if os.environ.get("STUB_PROBS"):
+        ans["probabilities"] = json.loads(os.environ["STUB_PROBS"])
+    print(json.dumps({"model": "stub-jev", "answers": {"decision": ans},
                       "usage": {"input_tokens": 40, "output_tokens": 0}}))

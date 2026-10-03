@@ -1,7 +1,24 @@
 {
   "schema": 1,
-  "_about": "Copy to the company folder as decidecall-adapters.json (or ~/.decidecall/adapters.json) and keep only the programs that are installed. decidecall runs each command itself, with no shell, and talks to it through standard input and output; it never opens a connection of its own.",
+  "_about": "Copy to the company folder as decidecall-adapters.json (or ~/.decidecall/adapters.json) and keep only the programs that are installed. decidecall runs each command itself, with no shell, and talks to it through standard input and output; it never opens a connection of its own. An adapter of kind \"embed\" gives the cache meaning: decidecall sends it {\"model\", \"input\": [texts]} (ollama /api/embed; for llama.cpp --embeddings or any server with /v1/embeddings change the address). Kinds \"ollama\" and \"openai-chat\" hand the output schema to the runner, which decodes only that shape. `keychain` names secrets decidecall reads from the computer's keychain into the adapter's environment; curl takes them with --variable and --expand-header, so no key is ever written in this file or on a command line.",
   "adapters": [
+    {
+      "id": "meaning-ollama",
+      "kind": "embed",
+      "model": "nomic-embed-text",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "2",
+        "http://127.0.0.1:11434/api/embed",
+        "-H",
+        "content-type: application/json",
+        "--data-binary",
+        "@-"
+      ],
+      "location": "local"
+    },
     {
       "id": "strands-local",
       "tier": "local",
@@ -18,7 +35,8 @@
       "provider": "local",
       "location": "local",
       "usd_per_mtok_in": 0,
-      "usd_per_mtok_out": 0
+      "usd_per_mtok_out": 0,
+      "family": "strands-decider"
     },
     {
       "id": "openjev-local",
@@ -36,7 +54,8 @@
       "provider": "local",
       "location": "local",
       "usd_per_mtok_in": 0,
-      "usd_per_mtok_out": 0
+      "usd_per_mtok_out": 0,
+      "family": "openjev"
     },
     {
       "id": "ollama-qwen",
@@ -52,6 +71,51 @@
       ],
       "provider": "local",
       "location": "local",
+      "usd_per_mtok_in": 0,
+      "usd_per_mtok_out": 0,
+      "family": "qwen"
+    },
+    {
+      "id": "ollama-qwen-strict",
+      "tier": "local",
+      "kind": "ollama",
+      "model": "qwen3.6:35b-a3b",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "120",
+        "http://127.0.0.1:11434/api/generate",
+        "-H",
+        "content-type: application/json",
+        "--data-binary",
+        "@-"
+      ],
+      "provider": "local",
+      "location": "local",
+      "family": "qwen",
+      "usd_per_mtok_in": 0,
+      "usd_per_mtok_out": 0
+    },
+    {
+      "id": "llamacpp-strict",
+      "tier": "local",
+      "kind": "openai-chat",
+      "model": "local",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "120",
+        "http://127.0.0.1:8080/v1/chat/completions",
+        "-H",
+        "content-type: application/json",
+        "--data-binary",
+        "@-"
+      ],
+      "provider": "local",
+      "location": "local",
+      "family": "llamacpp",
       "usd_per_mtok_in": 0,
       "usd_per_mtok_out": 0
     },
@@ -79,22 +143,35 @@
       "location": "cloud",
       "zdr": false,
       "usd_per_mtok_in": 1.0,
-      "usd_per_mtok_out": 5.0
+      "usd_per_mtok_out": 5.0,
+      "family": "claude-haiku"
     },
     {
       "id": "jev",
       "tier": "cheap",
       "kind": "systemone",
       "command": [
-        "sh",
-        "-c",
-        "curl -sS https://api.typesafe.ai/v1/systemone -H \"Authorization: Bearer $TYPESAFE_API_KEY\" -H 'content-type: application/json' --data-binary @-"
+        "curl",
+        "-sS",
+        "--variable",
+        "%TYPESAFE_API_KEY",
+        "--expand-header",
+        "Authorization: Bearer {{TYPESAFE_API_KEY}}",
+        "-H",
+        "content-type: application/json",
+        "--data-binary",
+        "@-",
+        "https://api.typesafe.ai/v1/systemone"
       ],
       "provider": "typesafe",
       "location": "cloud",
       "zdr": false,
       "usd_per_mtok_in": 0.042,
-      "usd_per_mtok_out": 0
+      "usd_per_mtok_out": 0,
+      "keychain": {
+        "TYPESAFE_API_KEY": "typesafe-api-key"
+      },
+      "family": "jev"
     },
     {
       "id": "opus",
@@ -120,7 +197,8 @@
       "location": "cloud",
       "zdr": false,
       "usd_per_mtok_in": 4.0,
-      "usd_per_mtok_out": 20.0
+      "usd_per_mtok_out": 20.0,
+      "family": "claude-opus"
     }
   ]
 }

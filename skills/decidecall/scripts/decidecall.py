@@ -9,7 +9,10 @@ chain and stops at the first link sure enough:
 Each link answers with a decision and a confidence. At `act` (0.95 by default, the gate "confidence > .95"
 of the JEV notes) the decision is taken. Between `verify` (0.70) and `act` the next link is asked, and two
 links that agree settle it. Below that, or when no link is sure, a person decides - and the person's
-answer goes into the cache, so the same question never reaches a model again. `promote` turns decisions
+answer goes into the cache, so the same question never reaches a model again. The cache also knows a
+question asked in other words: with an embedder (a local model server - ollama, llama.cpp - reached through
+the company's own command) it compares meanings, otherwise it compares words; a similar match is offered for
+verification and never acts alone. `promote` turns decisions
 the models kept agreeing on into cache entries and suggests rules; `bench` measures the whole chain on
 labelled examples: accuracy, what each link decided, how honest the confidences were, the price of one
 decision against sending everything to one model.
@@ -59,11 +62,14 @@ MANAGED_DIRS = {
 }
 CHAIN = ("cache", "rules", "local", "cheap", "strong", "human")
 MODEL_TIERS = ("local", "cheap", "strong")
-KINDS = ("systemone", "strands-cli", "decision-json")
+KINDS = ("systemone", "strands-cli", "decision-json", "ollama", "openai-chat")
+EMBED_KIND = "embed"
+NONE_OF_THESE = "none_of_these"
 COLORS = ("green", "yellow", "red")
 ACT = 0.95       # JEV notes (92.txt:636-648): confidence > .95 -> act
 VERIFY = 0.70    # .70-.95 -> verify; below -> escalate
 SIMILAR = 0.80   # token overlap from which a cached answer is offered for verification
+SIMILAR_MEANING = 0.90   # cosine of two local embeddings from which a cached answer is offered
 SIMILAR_CAP = 0.90   # ...and the most a similar answer may claim: always below the act gate
 CHARS_PER_TOKEN = 4
 BINS = ((0.0, 0.7), (0.7, 0.9), (0.9, 0.95), (0.95, 1.0001))
@@ -187,12 +193,15 @@ def check_task(task, path="the task"):
 
 
 def output_schema(task):
-    """The outputSchema every model adapter's answer must match."""
+    """The outputSchema every model adapter's answer must match. Runners that decode against a schema
+    (claude -p --json-schema, ollama `format`, llama.cpp / vLLM `response_format`) can only produce this shape;
+    the rest are checked against it after the fact. `none_of_these` sends the decision to a person."""
     return {
         "type": "object",
         "properties": {
-            "decision": {"type": "string", "enum": sorted(task["options"])},
+            "decision": {"type": "string", "enum": sorted(task["options"]) + [NONE_OF_THESE]},
             "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "reason": {"type": "string", "maxLength": 300},
         },
         "required": ["decision", "confidence"],
         "additionalProperties": False,
@@ -206,8 +215,9 @@ def prompt_for(task, text):
         lines.append("- %s%s" % (name, ": " + desc if desc else ""))
     lines += ["",
               'Answer with JSON only: {"decision": one of %s, "confidence": the probability from 0 to 1 that '
-              'your decision is right}. Be calibrated: say 0.95 or more only when you are almost never wrong '
-              'on messages like this.' % json.dumps(sorted(task["options"])),
+              'your decision is right, "reason": a few words}. Answer "%s" when no option fits. Be calibrated: '
+              'say 0.95 or more only when you are almost never wrong on messages like this.'
+              % (json.dumps(sorted(task["options"])), NONE_OF_THESE),
               "", "Message:", "<<<", text, ">>>"]
     return "\n".join(lines)
 
@@ -231,6 +241,15 @@ def overlap(a, b):
     if not ta or not tb:
         return 0.0
     return len(ta & tb) / float(len(ta | tb))
+
+
+def cosine(a, b):
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    return dot / (na * nb) if na and nb else 0.0
 
 
 def estimate_tokens(text):
@@ -329,6 +348,8 @@ def load_adapters(explicit=None, cwd=None):
 def check_adapter(a, path):
     if not isinstance(a, dict) or not a.get("id"):
         raise Problem("%s: every adapter needs an id" % path)
+    if a.get("kind") == EMBED_KIND:
+        return check_embedder(a, path)
     if a.get("tier") not in MODEL_TIERS:
         raise Problem("%s: adapter %s has tier %r (one of %s)" % (path, a["id"], a.get("tier"), ", ".join(MODEL_TIERS)))
     if a.get("kind") not in KINDS:
@@ -348,7 +369,63 @@ def check_adapter(a, path):
         if not isinstance(value, (int, float)) or value < 0:
             raise Problem("%s: adapter %s: %s must be a number >= 0" % (path, a["id"], key))
         a[key] = float(value)
+    a.setdefault("family", a["id"])
+    check_keychain(a, path)
     return a
+
+
+def check_command(a, path):
+    cmd = a.get("command")
+    if isinstance(cmd, str):
+        cmd = shlex.split(cmd)
+    if not isinstance(cmd, list) or not cmd or not all(isinstance(c, str) for c in cmd):
+        raise Problem("%s: adapter %s needs a command (a list of words)" % (path, a["id"]))
+    return cmd
+
+
+def check_keychain(a, path):
+    secrets = a.get("keychain") or {}
+    if not isinstance(secrets, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in secrets.items()):
+        raise Problem("%s: adapter %s: keychain maps an environment variable to a keychain service name" % (path, a["id"]))
+
+
+def check_embedder(a, path):
+    """The meaning cache's embedder: a command that sends {"model", "input": [texts]} to a model server on
+    this computer (ollama /api/embed, llama.cpp or any /v1/embeddings) and prints its answer."""
+    a = dict(a, command=check_command(a, path), tier="embed")
+    a.setdefault("location", "local")
+    if a["location"] != "local":
+        raise Problem("%s: embedder %s must be local: the meaning cache stays on this computer" % (path, a["id"]))
+    if not a.get("model"):
+        raise Problem("%s: embedder %s needs a model name" % (path, a["id"]))
+    return a
+
+
+def keychain_secret(service):
+    """A secret from the computer's own keychain (macOS Keychain, the Secret Service on Linux), or None."""
+    if sys.platform == "darwin":
+        cmd = ["security", "find-generic-password", "-s", service, "-w"]
+    elif sys.platform.startswith("linux"):
+        cmd = ["secret-tool", "lookup", "service", service]
+    else:
+        return None
+    try:
+        done = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    value = done.stdout.strip()
+    return value if done.returncode == 0 and value else None
+
+
+def adapter_env(a):
+    """The adapter's environment: ours, plus every keychain secret it names that is not already set."""
+    env = dict(os.environ)
+    for var, service in (a.get("keychain") or {}).items():
+        if not env.get(var):
+            value = keychain_secret(service)
+            if value:
+                env[var] = value
+    return env
 
 
 def price_of(a, in_tok, out_tok=20):
@@ -396,8 +473,10 @@ def fill(word, values):
 
 
 def parse_answer(kind, out, task):
-    """-> (decision, confidence, reported_cost or None). Raises Problem when the answer is unusable."""
+    """-> (decision, confidence, reported_cost or None, reason). Raises Problem when the answer is unusable.
+    The decision may be NONE_OF_THESE: the model says no option fits."""
     options = task["options"]
+    reason = ""
     if kind == "strands-cli":
         m = re.search(r"->\s*(\S+)\s*\(confidence\s*([0-9.]+)\)", out)
         if not m:
@@ -420,7 +499,9 @@ def parse_answer(kind, out, task):
             decision = ans.get("choice")
             conf = ans.get("confidence")
             probs = ans.get("probabilities") or {}
-            if conf is None and decision in probs:
+            if decision in probs:
+                # A systemone `confidence` is (p_max - 1/n) / (1 - 1/n), a margin, not a probability; the
+                # probability of the chosen option is what the act gate compares with.
                 conf = probs[decision]
         else:
             if isinstance(doc, dict) and isinstance(doc.get("total_cost_usd"), (int, float)):
@@ -434,18 +515,48 @@ def parse_answer(kind, out, task):
                     m = re.search(r"\{.*\}", doc["result"], re.S)
                     doc = json.loads(m.group(0)) if m else {}
             elif isinstance(doc, dict) and isinstance(doc.get("response"), str):
-                doc = json.loads(doc["response"])
+                doc = json.loads(doc["response"])          # ollama /api/generate
+            elif isinstance(doc, dict) and isinstance(doc.get("choices"), list) and doc["choices"]:
+                content = ((doc["choices"][0] or {}).get("message") or {}).get("content")   # /v1/chat/completions
+                if not isinstance(content, str):
+                    raise Problem("the chat answer has no message content")
+                doc = json.loads(content)
             if not isinstance(doc, dict):
                 raise Problem("the answer is not a JSON object")
-            extra = set(doc) - {"decision", "confidence"}
+            extra = set(doc) - {"decision", "confidence", "reason"}
             if extra:
                 raise Problem("the answer has fields the schema does not allow: %s" % ", ".join(sorted(extra)))
             decision, conf = doc.get("decision"), doc.get("confidence")
-    if decision not in options:
+            reason = doc.get("reason") or ""
+            if not isinstance(reason, str):
+                raise Problem("the reason is not text")
+    if decision not in options and decision != NONE_OF_THESE:
         raise Problem("the answer %r is not one of the options" % (decision,))
     if isinstance(conf, bool) or not isinstance(conf, (int, float)) or not 0 <= conf <= 1:
         raise Problem("the confidence %r is not a number from 0 to 1" % (conf,))
-    return decision, float(conf), cost
+    return decision, float(conf), cost, reason[:300]
+
+
+def request_body(a, task, prompt, text):
+    """What goes on the adapter's standard input: the prompt, or the JSON request its runner takes. The
+    `ollama` and `openai-chat` kinds hand the output schema to the runner, which decodes only that shape."""
+    schema = output_schema(task)
+    if a["kind"] == "systemone":
+        request = {"state": text, "questions": {"decision": {
+            "type": "choice", "instructions": task.get("question") or "",
+            "criteria": {k: (v or k) for k, v in task["options"].items()}}}}
+        if a.get("model"):
+            request["model"] = a["model"]
+        return json.dumps(request)
+    if a["kind"] == "ollama":
+        return json.dumps({"model": a.get("model") or "", "prompt": prompt, "format": schema, "stream": False,
+                           "options": {"temperature": 0}})
+    if a["kind"] == "openai-chat":
+        return json.dumps({"model": a.get("model") or "", "temperature": 0,
+                           "messages": [{"role": "user", "content": prompt}],
+                           "response_format": {"type": "json_schema", "json_schema": {
+                               "name": "decision", "strict": True, "schema": schema}}})
+    return prompt
 
 
 def run_adapter(a, task, text):
@@ -454,19 +565,11 @@ def run_adapter(a, task, text):
     prompt = prompt_for(task, text)
     values = {"state": text, "question": task.get("question") or "", "prompt": prompt, "schema": schema,
               "options_csv": ",".join(sorted(task["options"]))}
-    if a["kind"] == "systemone":
-        request = {"state": text, "questions": {"decision": {
-            "type": "choice", "instructions": task.get("question") or "",
-            "criteria": {k: (v or k) for k, v in task["options"].items()}}}}
-        if a.get("model"):
-            request["model"] = a["model"]
-        stdin = json.dumps(request)
-    else:
-        stdin = prompt
+    stdin = request_body(a, task, prompt, text)
     cmd = [fill(w, values) for w in a["command"]]
     in_tok = estimate_tokens(stdin if a["kind"] == "systemone" else prompt)
     try:
-        done = subprocess.run(cmd, input=stdin, capture_output=True, text=True,
+        done = subprocess.run(cmd, input=stdin, capture_output=True, text=True, env=adapter_env(a),
                               timeout=float(a.get("timeout", 180)))
     except FileNotFoundError:
         return {"note": "%s is not installed (%s)" % (a["id"], cmd[0])}
@@ -478,33 +581,105 @@ def run_adapter(a, task, text):
         tail = (done.stderr or done.stdout or "").strip().splitlines()[-1:] or [""]
         return {"note": "%s ended with code %d: %s" % (a["id"], done.returncode, tail[0][:200])}
     try:
-        decision, conf, reported = parse_answer(a["kind"], done.stdout, task)
+        decision, conf, reported, reason = parse_answer(a["kind"], done.stdout, task)
     except (Problem, ValueError) as exc:
         return {"note": "%s: the answer failed the output schema (%s)" % (a["id"], exc)}
     cost = reported if reported is not None else price_of(a, in_tok)
-    return {"decision": decision, "confidence": conf, "cost_usd": round(cost, 8)}
+    if decision == NONE_OF_THESE:
+        return {"none_of_these": True, "confidence": conf, "cost_usd": round(cost, 8), "family": a["family"],
+                "note": "%s: none of the options fits%s" % (a["id"], " (%s)" % reason if reason else "")}
+    res = {"decision": decision, "confidence": conf, "cost_usd": round(cost, 8), "family": a["family"]}
+    if reason:
+        res["reason"] = reason
+    return res
+
+
+# ---------------------------------------------------------------- the meaning cache -----------
+
+def run_embedder(e, texts):
+    """-> one vector per text from the local model server, or None when no server answered."""
+    body = json.dumps({"model": e["model"], "input": list(texts)})
+    try:
+        done = subprocess.run(e["command"], input=body, capture_output=True, text=True,
+                              timeout=float(e.get("timeout", 5)))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if done.returncode != 0:
+        return None
+    try:
+        doc = json.loads(done.stdout)
+    except ValueError:
+        return None
+    vecs = None
+    if isinstance(doc, dict) and isinstance(doc.get("embeddings"), list):
+        vecs = doc["embeddings"]                                   # ollama /api/embed
+    elif isinstance(doc, dict) and isinstance(doc.get("data"), list):
+        rows = sorted(doc["data"], key=lambda r: r.get("index", 0) if isinstance(r, dict) else 0)
+        vecs = [r.get("embedding") if isinstance(r, dict) else None for r in rows]   # /v1/embeddings
+    if not vecs or len(vecs) != len(texts):
+        return None
+    for v in vecs:
+        if not isinstance(v, list) or not v or not all(isinstance(x, (int, float)) for x in v):
+            return None
+    return [[float(x) for x in v] for v in vecs]
+
+
+def embed_cache(e, cache, text):
+    """Embed the question and every cached text that has no vector from this model yet (a new model or new
+    dimensions are recomputed), all in one call. -> the question's vector, or None (no server)."""
+    stale = [k for k, entry in cache.items() if entry.get("text") and not entry.get("refuted")
+             and (entry.get("vec_model") != e["model"] or len(entry.get("vec") or []) != entry.get("vec_dims"))]
+    vecs = run_embedder(e, [text] + [cache[k]["text"] for k in stale])
+    if vecs is None:
+        return None
+    dims = len(vecs[0])
+    for k, v in zip(stale, vecs[1:]):
+        cache[k].update(vec=v, vec_model=e["model"], vec_dims=len(v))
+    return vecs[0] if all(len(v) == dims for v in vecs) else None
+
+
+def similar_answer(best, score, how, key):
+    # A similar message is never acted on alone (JEV notes: "similar cache -> reuse / verify"): its
+    # confidence stays under the act gate, it is marked similar, and the next link has to agree.
+    conf = min(score, SIMILAR_CAP) * float(best.get("confidence", 1.0))
+    return {"decision": best["decision"], "confidence": round(conf, 4), "cost_usd": 0.0, "similar": True,
+            "similar_to": key, "note": "similar to a cached message (%s %.2f)" % (how, score)}
 
 
 # ---------------------------------------------------------------- the chain -------------------
 
-def from_cache(task, text, cache):
+def from_cache(task, text, cache, embedder=None):
+    """Exact repeats first; then the cached message closest in meaning (local embeddings, when an embedder
+    answers) or in words (overlap, otherwise). An entry a person refuted is never offered again; an entry may
+    carry its own `similar_min`. `cache` gains vectors in place; the result says so with `cache_changed`."""
     key = cache_key(task["id"], text)
     hit = cache.get(key)
     if hit:
         return {"decision": hit["decision"], "confidence": float(hit.get("confidence", 1.0)), "cost_usd": 0.0,
                 "note": "exact repeat (%s)" % hit.get("source", "cache")}
-    best, score = None, 0.0
-    for entry in cache.values():
-        if entry.get("text"):
-            s = overlap(text, entry["text"])
-            if s > score:
-                best, score = entry, s
-    if best and score >= SIMILAR:
-        # A similar message is never acted on alone (JEV notes: "similar cache -> reuse / verify"): its
-        # confidence stays under the act gate, so the next link has to agree.
-        conf = min(score, SIMILAR_CAP) * float(best.get("confidence", 1.0))
-        return {"decision": best["decision"], "confidence": round(conf, 4),
-                "cost_usd": 0.0, "note": "similar to a cached message (overlap %.2f)" % score}
+    live = [(k, e) for k, e in sorted(cache.items()) if e.get("text") and not e.get("refuted")]
+    if embedder and live:
+        qvec = embed_cache(embedder, cache, text)
+        if qvec is not None:
+            floor = float(task["thresholds"].get("similar_meaning", SIMILAR_MEANING))
+            best, score, best_key = None, 0.0, None
+            for k, entry in live:
+                s = cosine(qvec, entry.get("vec"))
+                if s > score:
+                    best, score, best_key = entry, s, k
+            if best and score >= float(best.get("similar_min", floor)):
+                res = similar_answer(best, score, "meaning, %s" % embedder["model"], best_key)
+            else:
+                res = {"note": "not in the cache (closest meaning %.2f)" % score}
+            res["cache_changed"] = True
+            return res
+    best, score, best_key = None, 0.0, None
+    for k, entry in live:
+        s = overlap(text, entry["text"])
+        if s > score:
+            best, score, best_key = entry, s, k
+    if best and score >= float(best.get("similar_min", SIMILAR)):
+        return similar_answer(best, score, "overlap", best_key)
     return {"note": "not in the cache"}
 
 
@@ -525,8 +700,15 @@ def from_rules(task, text):
     return {"note": "no rule matches"}
 
 
+def embedder_of(adapters):
+    """The first embedder among the adapters (kind "embed"), or None."""
+    return next((a for a in adapters or () if a.get("kind") == EMBED_KIND), None)
+
+
 def decide(task, text, color="green", policy=None, adapters=(), state=None, tiers=None):
     """Walk the chain. -> the decision record (also what goes into the journal)."""
+    embedder = embedder_of(adapters)
+    adapters = [a for a in adapters or () if a.get("kind") != EMBED_KIND]
     policy = policy or {}
     if color not in COLORS:
         raise Problem("color must be one of %s" % ", ".join(COLORS))
@@ -536,12 +718,15 @@ def decide(task, text, color="green", policy=None, adapters=(), state=None, tier
     budget = (policy or {}).get("max_usd_per_day")
     spent = spent_today(state) if (state and budget is not None) else 0.0
     in_tok = estimate_tokens(prompt_for(task, text))
-    steps, heard, final, cost = [], [], None, 0.0
+    steps, heard, final, cost, none_fits = [], [], None, 0.0, None
     for tier in chain:
         if tier == "human":
             break
         if tier == "cache":
-            results = [("cache", from_cache(task, text, cache))]
+            res = from_cache(task, text, cache, embedder)
+            if res.pop("cache_changed", False) and state:
+                write_cache(state, task["id"], cache)
+            results = [("cache", res)]
         elif tier == "rules":
             results = [("rules", from_rules(task, text))]
         else:
@@ -566,19 +751,24 @@ def decide(task, text, color="green", policy=None, adapters=(), state=None, tier
             step.update(res)
             steps.append(step)
             cost += float(res.get("cost_usd") or 0)
+            if res.get("none_of_these") and res["confidence"] >= verify:
+                none_fits = dict(res, tier=tier, adapter=name)
+                break
             if "decision" not in res:
                 continue
-            if res["confidence"] >= act:
+            if res["confidence"] >= act and not res.get("similar"):
                 final = dict(res, tier=tier, adapter=name, status="act")
                 break
-            agree = [h for h in heard if h["decision"] == res["decision"]
+            source = res.get("family") or name
+            agree = [h for h in heard if h["decision"] == res["decision"] and h["source"] != source
                      and max(h["confidence"], res["confidence"]) >= verify]
             if agree:
                 final = dict(res, tier=tier, adapter=name, status="verified",
-                             confidence=max([res["confidence"]] + [h["confidence"] for h in agree]))
+                             confidence=max([res["confidence"]] + [h["confidence"] for h in agree]),
+                             families=sorted(set([source] + [h["source"] for h in agree])))
                 break
-            heard.append(dict(res, tier=tier))
-        if final:
+            heard.append(dict(res, tier=tier, source=source))
+        if final or none_fits:
             break
     record = {
         "ts": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -593,12 +783,17 @@ def decide(task, text, color="green", policy=None, adapters=(), state=None, tier
         record["text"] = text
     if final:
         record.update(decision=final["decision"], confidence=final["confidence"], tier=final["tier"],
-                      adapter=final["adapter"], status=final["status"])
+                      adapter=final["adapter"], status=final["status"],
+                      families=final.get("families") or [final.get("family") or final["adapter"]])
+        if final.get("reason"):
+            record["reason"] = final["reason"]
     else:
         guess = max(heard, key=lambda h: h["confidence"]) if heard else None
         record.update(decision=None, tier="human", status="human",
                       best_guess=guess and {"decision": guess["decision"], "confidence": guess["confidence"],
                                             "tier": guess["tier"]})
+        if none_fits:
+            record["none_of_these"] = {"adapter": none_fits["adapter"], "confidence": none_fits["confidence"]}
     record["id"] = hashlib.sha256((record["ts"] + record["key"] + str(os.getpid())).encode()).hexdigest()[:12]
     return record
 
@@ -616,7 +811,9 @@ def remember(state, task_id, text, decision, confidence, source, color):
 
 def promote(task, state, min_count=2, min_agreement=1.0, apply=False):
     """Decisions the models kept making the same way, and every person's answer, become cache entries.
-    Words that only ever came with one decision are offered as rules (never added on their own)."""
+    Agreement counts only across sources: one model (one adapter `family`) answering a repeat twice is one
+    voice, so `min_count` names how many different families must agree. Words that only ever came with one
+    decision are offered as rules (never added on their own)."""
     act = task["thresholds"]["act"]
     groups = {}
     for e in read_journal(state):
@@ -626,7 +823,8 @@ def promote(task, state, min_count=2, min_agreement=1.0, apply=False):
         if e.get("status") == "human-answer":
             g["human"] = e["decision"]
         elif e.get("status") in ("act", "verified") and e.get("tier") in MODEL_TIERS:
-            g["votes"].append((e["decision"], float(e.get("confidence") or 0)))
+            g["votes"].append((e["decision"], float(e.get("confidence") or 0),
+                               tuple(e.get("families") or [e.get("adapter") or "?"])))
     cache = read_cache(state, task["id"])
     promoted = []
     for key, g in sorted(groups.items()):
@@ -635,14 +833,16 @@ def promote(task, state, min_count=2, min_agreement=1.0, apply=False):
         if g["human"]:
             promoted.append((key, g["human"], 1.0, "a person's answer", g))
             continue
-        if len(g["votes"]) < min_count:
+        if not g["votes"]:
             continue
-        labels = [d for d, _ in g["votes"]]
-        top = max(set(labels), key=labels.count)
+        labels = [d for d, _, _ in g["votes"]]
+        top = max(sorted(set(labels)), key=labels.count)
         share = labels.count(top) / float(len(labels))
-        mean = sum(c for d, c in g["votes"] if d == top) / labels.count(top)
-        if share >= min_agreement and mean >= act:
-            promoted.append((key, top, round(mean, 4), "%d agreeing model decisions" % labels.count(top), g))
+        mean = sum(c for d, c, _ in g["votes"] if d == top) / labels.count(top)
+        sources = set(f for d, _, fams in g["votes"] if d == top for f in fams)
+        if len(sources) >= min_count and share >= min_agreement and mean >= act:
+            promoted.append((key, top, round(mean, 4), "%d agreeing model decisions from %s"
+                             % (labels.count(top), ", ".join(sorted(sources))), g))
     if apply:
         for key, label, conf, why, g in promoted:
             entry = {"decision": label, "confidence": conf, "source": "promoted: " + why}
@@ -857,6 +1057,14 @@ def out(args, data, text):
     print(json.dumps(data, ensure_ascii=False, indent=2) if args.json else text)
 
 
+def refute_similar(cache, rec, answer):
+    """A cached message offered as similar, and answered otherwise by a person, is never offered again."""
+    for step in rec.get("steps") or []:
+        key = step.get("similar_to")
+        if key and key in cache and step.get("decision") != answer:
+            cache[key]["refuted"] = True
+
+
 def run_label(args, words):
     """A person's answer to a decision that reached them: journal it and put it into the cache."""
     state = state_dir(args.state_dir)
@@ -877,6 +1085,7 @@ def run_label(args, words):
     if rec.get("text"):
         cached["text"] = rec["text"]
     cache[rec["key"]] = cached
+    refute_similar(cache, rec, args.answer)
     write_cache(state, rec["task"], cache)
     out(args, entry, words["label_saved"].format(answer=args.answer))
     return 0

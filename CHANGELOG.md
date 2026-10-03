@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.4 — 2026-10-03
+
+- The meaning cache: with an embedder adapter (kind `embed`: ollama `/api/embed`, llama.cpp or any
+  `/v1/embeddings` server on this computer) a question asked in other words finds the cached answer by cosine
+  similarity of local embeddings (0.90 by default, per task and per entry); without one, word overlap as before.
+  Vectors are kept with their model and dimensions and recomputed for a new model. A similar match never acts
+  alone, at any act threshold; an entry a person answered differently is never offered again.
+- Strict decision shape: `{"decision", "confidence", "reason"}` with `none_of_these`, which sends the decision to a
+  person. New adapter kinds `ollama` (schema as `format`) and `openai-chat` (`response_format` `json_schema`,
+  strict) decode only that shape.
+- Agreement only across sources: adapters carry a `family`; one model repeating itself neither verifies nor gets
+  promoted into the cache.
+- `systemone` answers are taken at the probability of the chosen option.
+- Keys from the keychain: `keychain` on an adapter fills its environment; the example Jev adapter runs curl with
+  `--variable`/`--expand-header`, no shell, no key in the file.
+- `data/candidates.json`: Jev's price from TypeSafe ($42 per billion input tokens, output free), early access,
+  no ZDR; JevBench figures name their version.
+
 ## 0.1.3 — 2026-10-03
 
 - Wording: no disclaimers. The bench results in README stay as measured, stated as data with their conditions;

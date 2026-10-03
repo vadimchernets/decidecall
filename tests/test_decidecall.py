@@ -12,6 +12,7 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPT = os.path.join(ROOT, "skills", "decidecall", "scripts", "decidecall.py")
 STUB = os.path.join(ROOT, "tests", "fixtures", "stub_jev.py")
+EMBED = os.path.join(ROOT, "tests", "fixtures", "stub_embed.py")
 _spec = importlib.util.spec_from_file_location("decidecall", SCRIPT)
 dc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(dc)
@@ -32,8 +33,9 @@ class Env(unittest.TestCase):
         self.state = dc.state_dir(os.path.join(self.tmp, "state"))
         self.log = os.path.join(self.tmp, "calls")
         self.old = dict(os.environ)
-        os.environ.update(STUB_LOG=self.log, STUB_CHOICE="billing", STUB_CONF="0.97")
-        for k in ("STUB_KIND", "STUB_BROKEN"):
+        self.embed_log = os.path.join(self.tmp, "embeds")
+        os.environ.update(STUB_LOG=self.log, STUB_CHOICE="billing", STUB_CONF="0.97", EMBED_LOG=self.embed_log)
+        for k in ("STUB_KIND", "STUB_BROKEN", "STUB_PROBS", "STUB_REASON", "STUB_REQUEST", "EMBED_DOWN", "EMBED_STYLE"):
             os.environ.pop(k, None)
 
     def tearDown(self):
@@ -186,8 +188,8 @@ class Promote(Env):
     def test_agreeing_model_decisions_become_a_cache_entry(self):
         os.environ["STUB_CHOICE"] = "sales"
         text = "Can we pay by bank transfer?"
-        for _ in range(2):
-            dc.append_journal(self.state, dc.decide(TASK, text, adapters=[stub()], state=self.state))
+        for a in (stub(), stub("haiku", family="claude-haiku")):
+            dc.append_journal(self.state, dc.decide(TASK, text, adapters=[a], state=self.state))
         dry = dc.promote(TASK, self.state)
         self.assertEqual(len(dry["promoted"]), 1)
         self.assertEqual(dc.read_cache(self.state, TASK["id"]), {})
@@ -201,6 +203,15 @@ class Promote(Env):
         self.assertEqual(dc.promote(TASK, self.state)["promoted"], [])
         os.environ["STUB_CHOICE"] = "sales"
         dc.append_journal(self.state, dc.decide(TASK, text, adapters=[stub()], state=self.state))
+        self.assertEqual(dc.promote(TASK, self.state)["promoted"], [])
+
+    def test_one_model_agreeing_with_itself_is_one_voice(self):
+        # Haiku twice on the same repeat at 0.98 was twice wrong in the 2026-10-02 bench: not agreement.
+        os.environ.update(STUB_CHOICE="technical", STUB_CONF="0.98")
+        text = "I get logged out every five minutes"
+        for _ in range(3):
+            dc.append_journal(self.state, dc.decide(TASK, text, adapters=[stub("haiku", family="claude-haiku")],
+                                                    state=self.state))
         self.assertEqual(dc.promote(TASK, self.state)["promoted"], [])
 
     def test_rule_ideas_come_from_words_seen_only_with_one_decision(self):
@@ -285,7 +296,8 @@ class Cli(Env):
 
     def test_schema_and_candidates(self):
         schema = json.loads(self.run_cli("schema", "--task", "support-triage").stdout)
-        self.assertEqual(schema["properties"]["decision"]["enum"], sorted(TASK["options"]))
+        self.assertEqual(schema["properties"]["decision"]["enum"], sorted(TASK["options"]) + ["none_of_these"])
+        self.assertFalse(schema["additionalProperties"])
         self.assertEqual(self.run_cli("candidates").returncode, 0)
 
     def test_a_broken_policy_is_one_line_exit_2(self):
@@ -293,6 +305,136 @@ class Cli(Env):
         p = self.run_cli("decide", "--task", "support-triage", "--input", "x")
         self.assertEqual(p.returncode, 2)
         self.assertEqual(len(p.stderr.strip().splitlines()), 1)
+
+
+def embedder(**extra):
+    e = {"id": "meaning", "kind": "embed", "model": "stub-embed", "command": [sys.executable, EMBED]}
+    e.update(extra)
+    return dc.check_adapter(e, "test")
+
+
+class MeaningCache(Env):
+    def setUp(self):
+        super().setUp()
+        dc.remember(self.state, TASK["id"], "I was charged twice this month", "billing", 1.0, "a person's answer", "green")
+
+    def embeds(self):
+        return open(self.embed_log).read().splitlines() if os.path.exists(self.embed_log) else []
+
+    def test_the_same_question_in_other_words_is_found_by_meaning(self):
+        text = "Why was my card billed two times?"
+        self.assertEqual(dc.from_cache(TASK, text, dc.read_cache(self.state, TASK["id"]))["note"], "not in the cache")
+        rec = dc.decide(TASK, text, adapters=[embedder()], state=self.state, tiers=["cache"])
+        step = rec["steps"][0]
+        self.assertEqual(step["decision"], "billing")
+        self.assertIn("meaning, stub-embed", step["note"])
+        self.assertEqual(self.calls(), 0)
+
+    def test_a_meaning_match_never_acts_alone_and_a_second_source_settles_it(self):
+        text = "Why was my card billed two times?"
+        rec = dc.decide(TASK, text, adapters=[embedder()], state=self.state, tiers=["cache"])
+        self.assertEqual(rec["status"], "human")
+        self.assertEqual(rec["best_guess"]["decision"], "billing")
+        os.environ["STUB_CONF"] = "0.80"
+        rec = dc.decide(TASK, text, adapters=[embedder(), stub(id="j", tier="local", provider="local",
+                                                               location="local", price=0)], state=self.state)
+        self.assertEqual((rec["decision"], rec["status"]), ("billing", "verified"))
+        self.assertEqual(rec["families"], ["cache", "j"])
+
+    def test_a_similar_match_stays_below_even_a_low_act_gate(self):
+        task = json.loads(json.dumps(TASK))
+        task["thresholds"].update(act=0.5, verify=0.4)
+        rec = dc.decide(task, "Why was my card billed two times?", adapters=[embedder()], state=self.state,
+                        tiers=["cache"])
+        self.assertEqual(rec["status"], "human")
+
+    def test_vectors_are_kept_and_recomputed_only_for_a_new_model(self):
+        for _ in range(2):
+            dc.decide(TASK, "my card was billed two times", adapters=[embedder()], state=self.state, tiers=["cache"])
+        self.assertEqual(self.embeds(), ["stub-embed 2", "stub-embed 1"])
+        entry = next(iter(dc.read_cache(self.state, TASK["id"]).values()))
+        self.assertEqual((entry["vec_model"], entry["vec_dims"]), ("stub-embed", 5))
+        dc.decide(TASK, "my card was billed two times", adapters=[embedder(model="other")], state=self.state,
+                  tiers=["cache"])
+        self.assertEqual(self.embeds()[-1], "other 2")
+
+    def test_no_server_falls_back_to_word_overlap(self):
+        os.environ["EMBED_DOWN"] = "1"
+        cache = dc.read_cache(self.state, TASK["id"])
+        self.assertEqual(dc.from_cache(TASK, "I was charged twice this month!!! really", cache, embedder())["note"],
+                         dc.from_cache(TASK, "I was charged twice this month!!! really", cache)["note"])
+        self.assertIn("overlap", dc.from_cache(TASK, "I was charged twice this month again", cache, embedder())["note"])
+
+    def test_the_v1_embeddings_shape_is_read_too(self):
+        os.environ["EMBED_STYLE"] = "openai"
+        res = dc.from_cache(TASK, "card billed two times", dc.read_cache(self.state, TASK["id"]), embedder())
+        self.assertEqual(res["decision"], "billing")
+
+    def test_a_refuted_entry_is_never_offered_again(self):
+        text = "Why was my card billed two times?"
+        rec = dc.decide(TASK, text, adapters=[embedder()], state=self.state, tiers=["cache"])
+        cache = dc.read_cache(self.state, TASK["id"])
+        dc.refute_similar(cache, rec, "sales")
+        self.assertTrue(any(e.get("refuted") for e in cache.values()))
+        self.assertNotIn("decision", dc.from_cache(TASK, text, cache, embedder()))
+
+    def test_an_entry_may_carry_its_own_threshold(self):
+        text = "card billed two times and then it crashes"
+        cache = dc.read_cache(self.state, TASK["id"])
+        self.assertEqual(dc.from_cache(TASK, text, cache, embedder())["decision"], "billing")
+        for e in cache.values():
+            e["similar_min"] = 0.97
+        self.assertNotIn("decision", dc.from_cache(TASK, text, cache, embedder()))
+
+    def test_an_embedder_must_be_local(self):
+        with self.assertRaises(dc.Problem):
+            embedder(location="cloud")
+
+
+class StrictShape(Env):
+    def test_ollama_kind_sends_the_schema_as_format(self):
+        req = os.path.join(self.tmp, "req")
+        os.environ.update(STUB_KIND="ollama", STUB_REQUEST=req, STUB_CHOICE="sales", STUB_REASON="asks about seats")
+        a = stub("ol", tier="local", provider="local", location="local", price=0, kind="ollama", model="qwen")
+        rec = dc.decide(TASK, "Can we pay by bank transfer?", adapters=[a], state=self.state)
+        self.assertEqual((rec["decision"], rec["reason"]), ("sales", "asks about seats"))
+        body = json.load(open(req))
+        self.assertEqual(body["format"], dc.output_schema(TASK))
+        self.assertFalse(body["stream"])
+
+    def test_openai_chat_kind_sends_a_strict_json_schema(self):
+        req = os.path.join(self.tmp, "req")
+        os.environ.update(STUB_KIND="chat", STUB_REQUEST=req, STUB_CHOICE="sales")
+        a = stub("lc", tier="local", provider="local", location="local", price=0, kind="openai-chat")
+        rec = dc.decide(TASK, "Can we pay by bank transfer?", adapters=[a], state=self.state)
+        self.assertEqual(rec["decision"], "sales")
+        rf = json.load(open(req))["response_format"]
+        self.assertEqual((rf["type"], rf["json_schema"]["strict"]), ("json_schema", True))
+
+    def test_none_of_these_sends_the_decision_to_a_person(self):
+        os.environ.update(STUB_KIND="json", STUB_CHOICE="none_of_these")
+        rec = dc.decide(TASK, "Can we pay by bank transfer?",
+                        adapters=[stub("haiku", kind="decision-json"), stub("opus", tier="strong", kind="decision-json")],
+                        state=self.state)
+        self.assertEqual(rec["status"], "human")
+        self.assertEqual(rec["none_of_these"]["adapter"], "haiku")
+        self.assertEqual(self.calls(), 1)
+
+    def test_systemone_confidence_is_the_probability_of_the_choice(self):
+        os.environ.update(STUB_CONF="0.99", STUB_PROBS=json.dumps({"billing": 0.8, "sales": 0.1, "account": 0.05,
+                                                                   "technical": 0.05}))
+        res = dc.run_adapter(stub(), TASK, "Can we pay by bank transfer?")
+        self.assertEqual(res["confidence"], 0.8)
+
+    def test_keychain_secrets_reach_the_adapter_environment_only(self):
+        a = stub(keychain={"DC_TEST_SECRET": "dc-test"})
+        orig = dc.keychain_secret
+        dc.keychain_secret = lambda service: "s3cret" if service == "dc-test" else None
+        try:
+            self.assertEqual(dc.adapter_env(a)["DC_TEST_SECRET"], "s3cret")
+        finally:
+            dc.keychain_secret = orig
+        self.assertNotIn("DC_TEST_SECRET", os.environ)
 
 
 class Data(unittest.TestCase):
@@ -311,7 +453,7 @@ class Data(unittest.TestCase):
 
     def test_the_example_adapters_load(self):
         adapters, _ = dc.load_adapters(os.path.join(ROOT, "data", "examples", "decidecall-adapters.example.json"))
-        self.assertEqual({a["tier"] for a in adapters}, {"local", "cheap", "strong"})
+        self.assertEqual({a["tier"] for a in adapters}, {"embed", "local", "cheap", "strong"})
 
     def test_every_dictionary_has_every_word(self):
         en = json.load(open(os.path.join(ROOT, "lang", "en.json")))
@@ -334,6 +476,12 @@ class NoNetwork(unittest.TestCase):
     def test_adapters_run_without_a_shell(self):
         text = open(SCRIPT, encoding="utf-8").read()
         self.assertNotIn("shell=True", text)
+
+    def test_no_example_adapter_starts_a_shell_or_holds_a_key(self):
+        doc = json.load(open(os.path.join(ROOT, "data", "examples", "decidecall-adapters.example.json")))
+        for a in doc["adapters"]:
+            self.assertNotIn(os.path.basename(a["command"][0]), ("sh", "bash", "zsh", "cmd", "powershell"), a["id"])
+            self.assertNotIn("$", " ".join(a["command"]), a["id"])
 
 
 if __name__ == "__main__":

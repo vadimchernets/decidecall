@@ -7,8 +7,8 @@
 - **Its own state** in `~/.decidecall/` (or `$DECIDECALL_HOME`, or `--state-dir`): `cache/<task>.json` and
   `journal.jsonl`. For red data only a SHA-256 fingerprint of the text is kept, never the text.
 - **The programs named in `decidecall-adapters.json`**, run with no shell, with the decision's text on their
-  standard input. What such a program sends and where is that program's business and the company's choice;
-  the company policy decides which of them may receive which data.
+  standard input. The company chooses these programs, and its policy decides which of them receives which
+  data.
 - **The company policy file** `company-ai-policy.json`, read-only.
 
 ## What it never does

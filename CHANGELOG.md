@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 — 2026-10-03
+
+- Wording: no disclaimers. The bench results in README stay as measured, stated as data with their conditions;
+  SECURITY.md and the skill speak plainly of the company's own adapters.
+- Tests: a tone check reddens on disclaimers, excuses and apologies in what people read (five languages).
+
 ## 0.1.2 — 2026-10-03
 
 - README: the Zenodo DOI badge (the concept DOI always points to the latest version).

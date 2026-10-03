@@ -3,14 +3,14 @@
   "owner": { "name": "Vadym Chernets" },
   "metadata": {
     "description": "decidecall: pay a model only for the decisions that need one - cache, rules, a local model, a cheap and a strong model, a person, with a bench that says what each link is worth. Buys nothing.",
-    "version": "0.1.2"
+    "version": "0.1.3"
   },
   "plugins": [
     {
       "name": "decidecall",
       "source": "./",
       "description": "A decision chain - cache, rules, local model, cheap cloud, strong model, a person - that stops at the first link sure enough, never asks a person twice, keeps red data local, stops paid links at the daily budget, and benchmarks itself. Buys nothing.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": { "name": "Vadym Chernets" },
       "license": "Apache-2.0",
       "keywords": ["decision", "router", "cache", "confidence", "for-companies"],

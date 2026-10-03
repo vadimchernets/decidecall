@@ -6,8 +6,8 @@ Pay a model only for the decisions that need one. A [Claude Code](https://claude
 Poly A1 for a company's repeated small decisions — which team gets this message, approve or send back, urgent
 or not. Repository: [github.com/vadimchernets/decidecall](https://github.com/vadimchernets/decidecall).
 
-**decidecall decides and counts; it buys nothing**, opens no checkout and never asks for a card or a key. A
-paid model is reached only through a program the company has installed and signed in itself, and the person
+**decidecall decides and counts; it buys nothing.** A paid model is reached through a program the company has
+installed and signed in itself, and the person
 responsible for the company's accounts decides whether a hosted decision model is worth buying — on the
 numbers `bench` gives.
 
@@ -55,7 +55,7 @@ other fields); an answer that fails it is a note, not a decision. Candidates, al
 (`data/candidates.json`): strands-decider, OpenJev, JevK5, setfit, Outlines, XGrammar, BAML, llm-typesafe
 (Apache-2.0), agent-model-router (MIT), OpenSmartRoute (Apache-2.0, a router to compare with the chain itself),
 JevBench (MIT), ollama (MIT); TypeSafe's hosted Jev — $0.042 per million input tokens, output free — from a
-secondary source only.
+secondary source.
 
 ## The company policy file
 
@@ -88,17 +88,17 @@ with repeats as real support has them. Full results: `data/bench/results-2026-10
 What did not work, as bench said it:
 
 - **Haiku was wrong twice at confidence 0.98** — "I get logged out every five minutes" went to technical, not
-  account, and its repeat followed it; a confident model answer is not a person's answer, which is why
-  `promote` asks for agreement before caching it. Its calibration was otherwise close: mean confidence 0.970,
+  account, and its repeat followed it; `promote` asks for agreement before caching a model's answer, so such a
+  repeat goes back to a link or a person. Its calibration was otherwise close: mean confidence 0.970,
   right 0.966 (expected calibration error 0.004).
 - **The chain through `claude -p` cost nine times the reference**: each call carries Claude Code's own
   instructions (about 2,600 input tokens with `--tools "" --strict-mcp-config` and a one-line system prompt;
   about 24,000 and $0.049 a call without them). On a Claude subscription this is the plan's usage, not money;
   over the API, a direct call or a decision model is the cheaper link.
-- **No local model was measured**: this computer has no ollama, strands-decider or OpenJev; the local link has
-  its adapter and its tests, and waits for an install to be benched.
-- The rules were written by the same hand as the examples, so their 32 of 32 is an upper bound; the number that
-  counts is bench on the company's own past decisions.
+- **The local link was not in this run**: the measuring computer had no ollama, strands-decider or OpenJev. Its
+  adapter and tests are in place; `bench --tiers cache,rules,local` measures it wherever one is installed.
+- The rules and the examples come from one author, so 32 of 32 is the ceiling on this set; `bench` on the
+  company's own past decisions gives the company's figure.
 
 ## Installing
 

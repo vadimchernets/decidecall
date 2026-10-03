@@ -1,7 +1,7 @@
 {
   "name": "decidecall",
   "description": "A decision layer for a company: a repeated small decision (which team gets this message, approve or send back, is it urgent) walks cache, rules, a local model, a cheap cloud model, a strong model and a person, and stops at the first link sure enough (confidence 0.95 by default; two links that agree settle a less sure answer). A person's answer goes into the cache, so it is never asked twice; promote turns decisions the models kept agreeing on into cache entries and suggests rules; bench measures accuracy, what each link decided, how honest the confidences were and the price of one decision against sending everything to one model. Model links are programs the company installs (strands-decider, OpenJev, ollama, claude -p), checked against an output schema; the company policy keeps red data local, admits only zero-retention vendors when asked and stops paid links at the daily budget. It decides and counts - it buys nothing.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": { "name": "Vadym Chernets" },
   "homepage": "https://github.com/vadimchernets/decidecall",
   "license": "Apache-2.0",

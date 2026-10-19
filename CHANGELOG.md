@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5 — 2026-10-19
+
+- Interface text in eleven languages (de, fr, hi, ja, ko, zh added next to en, es, pt, ru, uk): `lang/<code>.json` for every language of the app.
+
 ## 0.1.4 — 2026-10-03
 
 - The meaning cache: with an embedder adapter (kind `embed`: ollama `/api/embed`, llama.cpp or any

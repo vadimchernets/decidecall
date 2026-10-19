@@ -1,0 +1,14 @@
+{
+  "name": "中文",
+  "human_needed": "这个由人来决定(id {id};目前的最佳猜测:{guess})。其答案会进入缓存。",
+  "label_saved": "已保存:{answer}。同一条消息现在从缓存中决定,免费。",
+  "bench_file": "decisions-bench.md",
+  "bench_title": "决策基准",
+  "bench_examples": "示例",
+  "bench_auto": "无需人工决定(正确)",
+  "bench_person": "交给人",
+  "bench_cost": "一次决策的价格",
+  "bench_baseline": "一次决策的价格,全部交给同一个模型",
+  "bench_tiers": "每个环节决定了什么",
+  "bench_negative": "哪些没有奏效"
+}

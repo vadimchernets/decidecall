@@ -1,0 +1,14 @@
+{
+  "name": "한국어",
+  "human_needed": "이 건은 사람이 결정합니다(id {id}, 지금까지의 최선 추측: {guess}). 그 답은 캐시에 들어갑니다.",
+  "label_saved": "저장됨: {answer}. 같은 메시지는 이제 캐시에서 무료로 결정됩니다.",
+  "bench_file": "decisions-bench.md",
+  "bench_title": "결정 벤치",
+  "bench_examples": "예시",
+  "bench_auto": "사람 없이 결정됨(정답)",
+  "bench_person": "사람에게 보냄",
+  "bench_cost": "결정 1건의 가격",
+  "bench_baseline": "결정 1건의 가격, 모두 하나의 모델로",
+  "bench_tiers": "각 단계가 결정한 것",
+  "bench_negative": "효과가 없었던 것"
+}

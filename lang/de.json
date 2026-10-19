@@ -1,0 +1,14 @@
+{
+  "name": "Deutsch",
+  "human_needed": "Das entscheidet eine Person (id {id}; beste Vermutung bisher: {guess}). Ihre Antwort kommt in den Cache.",
+  "label_saved": "Gespeichert: {answer}. Dieselbe Nachricht wird jetzt aus dem Cache entschieden, kostenlos.",
+  "bench_file": "entscheidungs-pruefstand.md",
+  "bench_title": "Entscheidungsprüfstand",
+  "bench_examples": "Beispiele",
+  "bench_auto": "Ohne Person entschieden (richtig)",
+  "bench_person": "An eine Person geschickt",
+  "bench_cost": "Preis einer Entscheidung",
+  "bench_baseline": "Preis einer Entscheidung, alles an ein Modell",
+  "bench_tiers": "Was jedes Glied entschieden hat",
+  "bench_negative": "Was nicht funktioniert hat"
+}

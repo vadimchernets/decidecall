@@ -1,0 +1,14 @@
+{
+  "name": "日本語",
+  "human_needed": "これは人が決めます(id {id}、これまでの最良の推測: {guess})。その回答はキャッシュに入ります。",
+  "label_saved": "保存しました: {answer}。同じメッセージは今後キャッシュから無料で判断されます。",
+  "bench_file": "decisions-bench.md",
+  "bench_title": "判断ベンチ",
+  "bench_examples": "例",
+  "bench_auto": "人を介さず判断(正解)",
+  "bench_person": "人に回した数",
+  "bench_cost": "1件の判断の価格",
+  "bench_baseline": "1件の判断の価格(すべて1つのモデルに)",
+  "bench_tiers": "各段階が判断したこと",
+  "bench_negative": "うまくいかなかったこと"
+}

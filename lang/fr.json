@@ -1,0 +1,14 @@
+{
+  "name": "Français",
+  "human_needed": "Celle-ci est décidée par une personne (id {id} ; meilleure estimation jusqu'ici : {guess}). Sa réponse va dans le cache.",
+  "label_saved": "Enregistré : {answer}. Le même message est maintenant décidé depuis le cache, gratuitement.",
+  "bench_file": "banc-de-decisions.md",
+  "bench_title": "Banc de décisions",
+  "bench_examples": "Exemples",
+  "bench_auto": "Décidés sans personne (justes)",
+  "bench_person": "Envoyés à une personne",
+  "bench_cost": "Prix d'une décision",
+  "bench_baseline": "Prix d'une décision, tout vers un seul modèle",
+  "bench_tiers": "Ce que chaque maillon a décidé",
+  "bench_negative": "Ce qui n'a pas marché"
+}
